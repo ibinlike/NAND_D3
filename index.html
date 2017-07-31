@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style>
+    </style>
+    <script type="text/javascript">
+      function draw(data) {
+        "";
+        var margin = 75,
+            width = 1400 - margin,
+            height = 600 - margin;
+
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin)
+            .attr("height", height + margin)
+            .append('g')
+            .attr('class', 'map');
+      };
+      </script>
+</head>
+<body>
+  <script type="text/javascript">
+  /*
+  */
+  d3.tsv("prosperLoanData.csv", draw);
+  </script>
+</body>
+</html>
