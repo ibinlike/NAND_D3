@@ -10,6 +10,10 @@
   <script src="https://d3js.org/d3-scale.v1.min.js"></script>
 
   <style>
+  h2 {
+    text-align: center;
+    color: black;
+  }
   </style>
   <script type="text/javascript">
   </script>
@@ -23,6 +27,10 @@
 var margin = 75,
     width = 1400 - margin,
     height = 600 - margin;
+
+d3.select("body")
+  .append("h2")
+  .text("中国主要城市大气AQI分布 ")
 
 var svg = d3.select("body")
     .append("svg")
@@ -61,43 +69,17 @@ function draw(error, cities, province, data) {
                      return d['date'];
                    })
                    .entries(data);
-    //debugger;
 
-    var filtered = nested.filter(function(d) {
-      return d['key'] === "6/5/2000" ;
-    });
-
-    //debugger;
-
-    for (var i = 0; i < filtered[0].values.length; i ++){
-      var dataCity = filtered[0].values[i].city;
-      var dataValue = parseFloat(filtered[0].values[i].aqi);
-      for (var j = 0; j < cities.features.length; j++) {
-        var jsonCity = cities.features[j].properties.name;
-        if (dataCity == jsonCity) {
-          cities.features[j].properties.value = dataValue;
-          break;
-        }
-      }
-    } //insert aqi value into geojson file
-
-
-    svg.selectAll('.cities')
-       .data(cities.features)
-       .enter()
-       .append('path')
-       .attr('d', path)
-       .attr('class', 'cities')
-       .style('fill', function(d){
-         var value = d.properties.value;
-         if (value) {
-           return color(value);
-         } else {
-           return "#ccc";
-         }
-       })
-       .style('stroke', 'green')
-       .style('stroke-width', 0.2);
+    debugger;
+    // svg.selectAll('.cities')
+    //    .data(cities.features)
+    //    .enter()
+    //    .append('path')
+    //    .attr('d', path)
+    //    .attr('class', 'cities')
+    //    .style('fill', "#ccc")
+    //    .style('stroke', 'green')
+    //    .style('stroke-width', 0.2);
 
      svg.selectAll(".province")
         .data(province.features)
@@ -105,11 +87,83 @@ function draw(error, cities, province, data) {
         .append('path')
         .attr('d', path)
         .attr('class', 'province')
-        .attr("opacity", 0.5)
-        .style('fill', 'white')
+        .style('fill', '#f7fcf5')
         .style('stroke', 'black')
         .style('stroke-width', 1);
 
+
+    function highlight(cities, province, data) {
+
+        function update(day) {
+          var filtered = nested.filter(function(d) {
+            return d['key'] === day ;
+          });
+
+        d3.select("h2")
+          .text("中国主要城市大气AQI分布 " + day);
+          //debugger;
+        var updateFeature = []
+
+        for (var i = 0; i < filtered[0].values.length; i ++){
+          var dataCity = filtered[0].values[i].city;
+          var dataValue = parseFloat(filtered[0].values[i].aqi);
+          for (var j = 0; j < cities.features.length; j++) {
+            var jsonCity = cities.features[j].properties.name;
+            if (dataCity == jsonCity) {
+              cities.features[j].properties.value = dataValue;
+              updateFeature.push(cities.features[j]);
+              break;
+            }
+          }
+        } //insert aqi value into geojson file
+
+        //debugger;
+
+        var seleCities = svg.selectAll('.cities')
+                            .data(updateFeature);
+
+        seleCities.remove();
+
+        seleCities.enter()
+           .append('path')
+           //.transition()
+           //.duration(500)
+           .attr('d', path)
+           .attr('class', 'cities')
+           .style('fill', function(d){
+             var value = d.properties.value;
+             //if (value) {
+               return color(value);
+             //} else {
+               //return "#ccc";
+             //}
+           })
+           .style('stroke', 'green')
+           .style('stroke-width', 0.2);
+          }
+
+      var day = []
+
+      nested.forEach(function(d){
+        day.push(d['key'])
+      });
+      //debugger;
+      var day_index = 0
+
+      var isRunning = false
+
+      var day_interval = setInterval(function(){
+
+        update(day[day_index]);
+        //debugger;
+        day_index++;
+        if (day_index >= day.length) {
+          clearInterval(day_interval)
+        }
+      },500);
+    };
+
+    highlight(cities, province, data);
 };
   </script>
 </body>
