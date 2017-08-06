@@ -60,17 +60,34 @@ function draw(error, cities, province, data) {
 
     var format = d3.time.format("%m/%d/%Y")
 
+    data.forEach(function(d){
+        d['date'] = format.parse(d['date']);
+      })
+
     var color = d3.scaleSequential()
                   .domain([0,625])
                   .interpolator(d3.interpolateYlOrBr);
-    //debugger;
+
+    function agg_year(leaves) {
+      var averageAQI = d3.mean(leaves, function(d){
+        return d['aqi'];
+      });
+      return {
+        'aveAQI' : averageAQI
+      };
+    }
+
     var nested = d3.nest()
                    .key(function(d){
-                     return d['date'];
+                     return d['date'].getUTCFullYear();
                    })
+                   .key(function(d){
+                     return d['city']
+                   })
+                   .rollup(agg_year)
                    .entries(data);
 
-    debugger;
+    //debugger;
     // svg.selectAll('.cities')
     //    .data(cities.features)
     //    .enter()
@@ -87,26 +104,30 @@ function draw(error, cities, province, data) {
         .append('path')
         .attr('d', path)
         .attr('class', 'province')
-        .style('fill', '#f7fcf5')
+        .style('fill', '#fff5eb')
         .style('stroke', 'black')
-        .style('stroke-width', 1);
+        .style('stroke-width', 0.5);
 
 
     function highlight(cities, province, data) {
 
-        function update(day) {
+        function update(year) {
           var filtered = nested.filter(function(d) {
-            return d['key'] === day ;
+            return new Date(d['key']).getUTCFullYear() === year ;
           });
 
+        //debugger;
+
         d3.select("h2")
-          .text("中国主要城市大气AQI分布 " + day);
-          //debugger;
+          .text("中国主要城市大气AQI分布 " + year);
+
+        //debugger;
+
         var updateFeature = []
 
         for (var i = 0; i < filtered[0].values.length; i ++){
-          var dataCity = filtered[0].values[i].city;
-          var dataValue = parseFloat(filtered[0].values[i].aqi);
+          var dataCity = filtered[0].values[i].key;
+          var dataValue = parseFloat(filtered[0].values[i].values.aveAQI);
           for (var j = 0; j < cities.features.length; j++) {
             var jsonCity = cities.features[j].properties.name;
             if (dataCity == jsonCity) {
@@ -117,50 +138,55 @@ function draw(error, cities, province, data) {
           }
         } //insert aqi value into geojson file
 
+
         //debugger;
 
         var seleCities = svg.selectAll('.cities')
                             .data(updateFeature);
 
-        seleCities.remove();
 
-        seleCities.enter()
-           .append('path')
+
+        seleCities.enter().append('path');
+        seleCities.exit().remove();
+          //  .append('path')
+          //  .exit()
+          //  .remove();
            //.transition()
            //.duration(500)
-           .attr('d', path)
+        seleCities.attr('d', path)
            .attr('class', 'cities')
            .style('fill', function(d){
              var value = d.properties.value;
              //if (value) {
                return color(value);
              //} else {
-               //return "#ccc";
+               return "#fff5eb";
              //}
            })
            .style('stroke', 'green')
            .style('stroke-width', 0.2);
           }
 
-      var day = []
+
+
+      var year = []
 
       nested.forEach(function(d){
-        day.push(d['key'])
+        //console.log(Object.prototype.toString.call(d['key']));
+        year.push(d['key'])
       });
+
       //debugger;
-      var day_index = 0
+      var year_index = 0
 
-      var isRunning = false
-
-      var day_interval = setInterval(function(){
-
-        update(day[day_index]);
+      var year_interval = setInterval(function(){
+        update(Number(year[year_index]));
         //debugger;
-        day_index++;
-        if (day_index >= day.length) {
-          clearInterval(day_interval)
+        year_index++;
+        if (year_index >= year.length) {
+          clearInterval(year_interval)
         }
-      },500);
+      },1000);
     };
 
     highlight(cities, province, data);
