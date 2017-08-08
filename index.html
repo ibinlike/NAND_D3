@@ -27,6 +27,20 @@
     left: 7px;
     margin: 2px;
   }
+
+  div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 110px;
+    height: 30px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
   </style>
   <script type="text/javascript">
   </script>
@@ -63,6 +77,10 @@ var projection = d3.geo.mercator()
 
 var path = d3.geo.path().projection(projection);
 
+
+var div = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
 
 //start to load the tsv file
 
@@ -173,17 +191,41 @@ function draw(error, cities, province, data) {
         seleCities.attr('d', path)
            .attr('class', 'cities')
            .style('fill', function(d){
+             console.log(d.properties.value)
              var value = d.properties.value;
-             //if (value) {
                return color(value);
-             //} else {
-               //return "#fff5eb";
-             //}
            })
            .style('stroke', 'green')
            .style('stroke-width', 0.2);
-          }
 
+
+        seleCities.on("mouseover", function(d){
+                    d3.select(this)
+                      .transition()
+                      .duration(200)
+                      .style("stroke", "#636363")
+                      .style("stroke-width", 2);
+                      console.log(d.properties.name)
+                    div.transition()
+                       .duration(200)
+                       .style("opacity", .9);
+                    div.html(d.properties.name + "<br/>" + "年度平均AQI: " + d.properties.value)
+                      .style("left", (d3.event.pageX) + "px")
+                      .style("top", (d3.event.pageY - 28) + "px");
+          })
+                  .on("mouseout", function(d){
+                    d3.select(this)
+                      .transition()
+                      .style('stroke', 'green')
+                      .style('stroke-width', 0.2);
+                    div.transition()
+                       .duration(500)
+                       .style("opacity", 0)
+                  });
+
+          //debugger;
+
+        }
 
 
       var year = []
@@ -194,16 +236,7 @@ function draw(error, cities, province, data) {
         year.push(d['key'])
       });
 
-      var buttons = d3.select("body")
-                      .append("div")
-                      .attr("class", "year_buttons")
-                      .selectAll("div")
-                      .data(year)
-                      .enter()
-                      .append('div')
-                      .text(function(d) {
-                        return d;
-                      });
+
 
       //debugger;
       var year_index = 0
@@ -213,13 +246,42 @@ function draw(error, cities, province, data) {
         //debugger;
         year_index++;
         if (year_index >= year.length) {
-          clearInterval(year_interval)
+          clearInterval(year_interval);
+
+          var buttons = d3.select("body")
+                          .append("div")
+                          .attr("class", "year_buttons")
+                          .selectAll("div")
+                          .data(year)
+                          .enter()
+                          .append('div')
+                          .text(function(d) {
+                            return d;
+                          });
+
+          buttons.on('click', function(d) {
+
+              d3.select(".year_buttons")
+                .selectAll("div")
+                .transition()
+                .duration(500)
+                .style('color', 'black')
+                .style('backgroud', "rgb(251, 201, 127)");
+
+              d3.select(this)
+                .transition()
+                .duration(500)
+                //.style("backgroud", "lightBlue")
+                .style("color", "white");
+
+              update(Number(d));
+          });
         }
-      },1500);
+      },1000);
     };
 
     highlight(cities, province, data);
-};
+}
   </script>
 </body>
 </html>
