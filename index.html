@@ -8,6 +8,7 @@
   <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
   <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
   <script src="https://d3js.org/d3-scale.v1.min.js"></script>
+  <script src="./lib/colorbrewer.js"></script>
 
   <style>
   h2 {
@@ -18,7 +19,7 @@
   div.year_buttons {
     position: fixed;
     top: 100px;
-    left: 150px;
+    left: 200px;
   }
 
   div.year_buttons div {
@@ -30,17 +31,16 @@
 
   div.tooltip {
     position: absolute;
-    text-align: center;
-    width: 110px;
+    text-align: left;
+    width: 125px;
     height: 30px;
     padding: 2px;
     font: 12px sans-serif;
-    background: lightsteelblue;
+    background: #8da0cb;
     border: 0px;
     border-radius: 8px;
     pointer-events: none;
 }
-
   </style>
   <script type="text/javascript">
   </script>
@@ -55,9 +55,11 @@ var margin = 75,
     width = 1400 - margin,
     height = 600 - margin;
 
+
+
 d3.select("body")
   .append("h2")
-  .text("中国主要城市大气AQI分布 ")
+  .text("中国主要城市大气AQI Median数值分布 ")
 
 
 
@@ -68,10 +70,8 @@ var svg = d3.select("body")
     .append('g')
     .attr('class', 'map');
 
-
-
 var projection = d3.geo.mercator()
-                       .center([104,30])
+                       .center([100,28])
                        .scale(700)
                        .translate( [width / 2, height / 1.2]);
 
@@ -81,6 +81,8 @@ var path = d3.geo.path().projection(projection);
 var div = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
+
+
 
 //start to load the tsv file
 
@@ -98,12 +100,12 @@ function draw(error, cities, province, data) {
         d['date'] = format.parse(d['date']);
       })
 
-    var color = d3.scaleSequential()
-                  .domain([0,625])
-                  .interpolator(d3.interpolateOranges)
-                  //.range(["fff5eb", "#fee6ce", "#fdd0a2", "#fdae6b", "#fd8d3c", "#f16913", "#d94801", "#a63603", "#7f2704"]);
+    var color = d3.scale.quantile()
+                  .domain([0,500])
+                  .range(colorbrewer.Oranges[9]);
 
-    function agg_year(leaves) {
+
+      function agg_year(leaves) {
       var averageAQI = d3.median(leaves, function(d){
         return d['aqi'];
       });
@@ -121,17 +123,6 @@ function draw(error, cities, province, data) {
                    })
                    .rollup(agg_year)
                    .entries(data);
-
-    //debugger;
-    // svg.selectAll('.cities')
-    //    .data(cities.features)
-    //    .enter()
-    //    .append('path')
-    //    .attr('d', path)
-    //    .attr('class', 'cities')
-    //    .style('fill', "#ccc")
-    //    .style('stroke', 'green')
-    //    .style('stroke-width', 0.2);
 
      svg.selectAll(".province")
         .data(province.features)
@@ -151,12 +142,8 @@ function draw(error, cities, province, data) {
             return new Date(d['key']).getUTCFullYear() === year ;
           });
 
-        //debugger;
-
         d3.select("h2")
-          .text("中国主要城市大气AQI分布 " + year);
-
-        //debugger;
+          .text("中国主要城市大气年度AQI Median值分布 " + year);
 
         var updateFeature = []
 
@@ -174,24 +161,18 @@ function draw(error, cities, province, data) {
         } //insert aqi value into geojson file
 
 
-        //debugger;
+
 
         var seleCities = svg.selectAll('.cities')
                             .data(updateFeature);
 
 
-
         seleCities.enter().append('path').transition().duration(100);
         seleCities.exit().remove();
-          //  .append('path')
-          //  .exit()
-          //  .remove();
-           //.transition()
-           //.duration(500)
+
         seleCities.attr('d', path)
            .attr('class', 'cities')
            .style('fill', function(d){
-             console.log(d.properties.value)
              var value = d.properties.value;
                return color(value);
            })
@@ -205,11 +186,10 @@ function draw(error, cities, province, data) {
                       .duration(200)
                       .style("stroke", "#636363")
                       .style("stroke-width", 2);
-                      console.log(d.properties.name)
                     div.transition()
                        .duration(200)
                        .style("opacity", .9);
-                    div.html(d.properties.name + "<br/>" + "年度平均AQI: " + d.properties.value)
+                    div.html(d.properties.name + "<br/>" + "年度AQI Median: " + d.properties.value)
                       .style("left", (d3.event.pageX) + "px")
                       .style("top", (d3.event.pageY - 28) + "px");
           })
@@ -222,9 +202,6 @@ function draw(error, cities, province, data) {
                        .duration(500)
                        .style("opacity", 0)
                   });
-
-          //debugger;
-
         }
 
 
@@ -232,21 +209,56 @@ function draw(error, cities, province, data) {
 
 
       nested.forEach(function(d){
-        //console.log(Object.prototype.toString.call(d['key']));
         year.push(d['key'])
       });
 
-
-
-      //debugger;
       var year_index = 0
 
       var year_interval = setInterval(function(){
         update(Number(year[year_index]));
-        //debugger;
         year_index++;
         if (year_index >= year.length) {
           clearInterval(year_interval);
+
+          // draw legend
+          var defs = svg.append("defs")
+
+          var linearGradient = defs.append("linearGradient")
+                                   .attr("id", "linearColor")
+                                   .attr("x1", "0%")
+                                   .attr("y1", "0%")
+                                   .attr("x2", "0%")
+                                   .attr("y2", "100%")
+
+          var stop1 = linearGradient.append("stop")
+                                    .attr("offset", "0%")
+                                    .style("stop-color", colorbrewer.Oranges[9][0])
+
+          var stop2 = linearGradient.append("stop")
+                                    .attr("offset", "100%")
+                                    .style("stop-color", colorbrewer.Oranges[9][8])
+
+          var colorRect = svg.append("rect")
+                        .attr("x", 1000)
+                        .attr("y", 350)
+                        .attr("width", 30)
+                        .attr("height", 140)
+                        .style("fill", "url(#" + linearGradient.attr("id") + ")");
+
+          var minValueText = svg.append('text')
+                                .attr("class", "valueText")
+                                .attr("x", 1030)
+                                .attr("y", 359)
+                                .attr("dy", "-0.3em")
+                                .text("-0")
+
+          var minValueText = svg.append('text')
+                                .attr("class", "valueText")
+                                .attr("x", 1030)
+                                .attr("y", 498)
+                                .attr("dy", "-0.3em")
+                                .text("-500")
+          // draw legend
 
           var buttons = d3.select("body")
                           .append("div")
@@ -271,7 +283,6 @@ function draw(error, cities, province, data) {
               d3.select(this)
                 .transition()
                 .duration(500)
-                //.style("backgroud", "lightBlue")
                 .style("color", "white");
 
               update(Number(d));
