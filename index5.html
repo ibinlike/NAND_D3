@@ -16,6 +16,17 @@
     color: black;
   }
 
+ div.notes{
+   position: fixed;
+   bottom: 110px;
+   left:300px;
+   text-align: left;
+   color: black;
+   width: 300px;
+   word-break: break-all;
+   font-size: x-small;
+ }
+
   div.year_buttons {
     position: fixed;
     top: 100px;
@@ -61,6 +72,12 @@ d3.select("body")
   .append("h2")
   .text("中国主要城市大气AQI Median数值分布 ")
 
+d3.select("body")
+  .append("div")
+  .attr("class", "notes")
+  // .attr("width", 100)
+  // .attr("height",30)
+  .text("空气质量指数（英语：Air Quality Index, AQI）是定量描述空气质量状况的非线性无量纲指数。其数值越大、级别和类别越高、表征颜色越深，说明空气污染状况越严重，对人体的健康危害也就越大。")
 
 // set svg
 var svg = d3.select("body")
