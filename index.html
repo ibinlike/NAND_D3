@@ -48,21 +48,21 @@
 </head>
 <body>
   <script type="text/javascript">
-  /*
-    Use D3 to load the GeoJSON file
-    */
+
+//set basic parameter
+
 var margin = 75,
     width = 1400 - margin,
     height = 600 - margin;
 
 
-
+//set h2 for title
 d3.select("body")
   .append("h2")
   .text("中国主要城市大气AQI Median数值分布 ")
 
 
-
+// set svg
 var svg = d3.select("body")
     .append("svg")
     .attr("width", width + margin)
@@ -70,14 +70,16 @@ var svg = d3.select("body")
     .append('g')
     .attr('class', 'map');
 
+//set projection
 var projection = d3.geo.mercator()
                        .center([100,28])
                        .scale(700)
                        .translate( [width / 2, height / 1.2]);
 
+//set path
 var path = d3.geo.path().projection(projection);
 
-
+//set div for tooltip
 var div = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
@@ -85,26 +87,28 @@ var div = d3.select("body").append("div")
 
 
 //start to load the tsv file
-
 queue()
   .defer(d3.json, "./data/cities.json")
   .defer(d3.json, "./data/china.json")
   .defer(d3.tsv, "./data/aqi.tsv")
   .await(draw);
 
+//define draw function
 function draw(error, cities, province, data) {
 
+    // format the date
     var format = d3.time.format("%m/%d/%Y")
 
     data.forEach(function(d){
         d['date'] = format.parse(d['date']);
       })
 
+    //define the color scale
     var color = d3.scale.quantile()
                   .domain([0,500])
                   .range(colorbrewer.Oranges[9]);
 
-
+    //define the aggregate function to calculate median aqi value
       function agg_year(leaves) {
       var averageAQI = d3.median(leaves, function(d){
         return d['aqi'];
@@ -114,6 +118,7 @@ function draw(error, cities, province, data) {
       };
     }
 
+    //nested data with date as first key and city as second key
     var nested = d3.nest()
                    .key(function(d){
                      return d['date'].getUTCFullYear();
@@ -124,6 +129,7 @@ function draw(error, cities, province, data) {
                    .rollup(agg_year)
                    .entries(data);
 
+     //draw province map
      svg.selectAll(".province")
         .data(province.features)
         .enter()
@@ -134,17 +140,20 @@ function draw(error, cities, province, data) {
         .style('stroke', 'black')
         .style('stroke-width', 0.5);
 
-
+     //highlight the cities for each year
     function highlight(cities, province, data) {
 
+        // update data by year
         function update(year) {
           var filtered = nested.filter(function(d) {
             return new Date(d['key']).getUTCFullYear() === year ;
           });
 
+        //chage the title
         d3.select("h2")
           .text("中国主要城市大气年度AQI Median值分布 " + year);
 
+        // set the geojson features according to the data in the selected year and insert aqi value
         var updateFeature = []
 
         for (var i = 0; i < filtered[0].values.length; i ++){
@@ -158,11 +167,9 @@ function draw(error, cities, province, data) {
               break;
             }
           }
-        } //insert aqi value into geojson file
+        }
 
-
-
-
+        //draw cities
         var seleCities = svg.selectAll('.cities')
                             .data(updateFeature);
 
@@ -179,7 +186,7 @@ function draw(error, cities, province, data) {
            .style('stroke', 'green')
            .style('stroke-width', 0.2);
 
-
+        //define mouseover/mouseout event
         seleCities.on("mouseover", function(d){
                     d3.select(this)
                       .transition()
@@ -205,6 +212,7 @@ function draw(error, cities, province, data) {
         }
 
 
+      //prepare year for input
       var year = []
 
 
@@ -213,7 +221,7 @@ function draw(error, cities, province, data) {
       });
 
       var year_index = 0
-
+      // add animation
       var year_interval = setInterval(function(){
         update(Number(year[year_index]));
         year_index++;
@@ -258,7 +266,8 @@ function draw(error, cities, province, data) {
                                 .attr("y", 498)
                                 .attr("dy", "-0.3em")
                                 .text("-500")
-          // draw legend
+
+          // draw year buttons
 
           var buttons = d3.select("body")
                           .append("div")
@@ -270,7 +279,7 @@ function draw(error, cities, province, data) {
                           .text(function(d) {
                             return d;
                           });
-
+          // year button click event
           buttons.on('click', function(d) {
 
               d3.select(".year_buttons")
